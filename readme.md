@@ -2,8 +2,8 @@
 
 
 ### Вопрос по выполнению  
-```
-В веб интерфейсе я сделал пункт (Сеть). 
+
+##В веб интерфейсе я сделал пункт (Сеть). 
 
 ![application-load-balancer.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
 
@@ -15,7 +15,7 @@
 
 ![target-group.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/target-group.png)
 
-
+```
 После команды terrafrom apply 
 вылазит следующая ошибка 
 
@@ -27,8 +27,9 @@ BootDiskSpec: DiskSpec: TypeId: invalid disk type: must be one of network-hdd, n
 │   with yandex_compute_instance.web-1,
 │   on main.tf line 21, in resource "yandex_compute_instance" "web-1":
 │   21: resource "yandex_compute_instance" "web-1" {
-
+```
 ![error.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/error.png)
+```
 подскажите пожалуйста в чем может быть проблема, на данном этапе занимаюсь донастройкой остальной инфраструктуры. 
 
 Содержимое конфигов для дебага ниже
