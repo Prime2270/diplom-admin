@@ -5,11 +5,15 @@
 ```
 В веб интерфейсе я сделал пункт (Сеть). 
 
-![application-load-balancer.png]()
-![backend-group.png]()
-![router.png]()
-![subnet.png]()
-![target-group.png]()
+![application-load-balancer.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
+
+![backend-group.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/backend-group.png)
+
+![router.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/router.png)
+
+![subnet.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/subnet.png)
+
+![target-group.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/target-group.png)
 
 
 После команды terrafrom apply 
@@ -24,7 +28,7 @@ BootDiskSpec: DiskSpec: TypeId: invalid disk type: must be one of network-hdd, n
 │   on main.tf line 21, in resource "yandex_compute_instance" "web-1":
 │   21: resource "yandex_compute_instance" "web-1" {
 
-![error.png]()
+![error.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/error.png)
 подскажите пожалуйста в чем может быть проблема, на данном этапе занимаюсь донастройкой остальной инфраструктуры. 
 
 Содержимое конфигов для дебага ниже
