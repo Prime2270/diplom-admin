@@ -1,125 +1,5 @@
 #  Дипломная работа по профессии «Системный администратор» «Яковлев Константин»
 
-
-### Вопрос по выполнению  
-
-##В веб интерфейсе я сделал пункт (Сеть). 
-
-![application-load-balancer.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
-
-![backend-group.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/backend-group.png)
-
-![router.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/router.png)
-
-![subnet.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/subnet.png)
-
-![target-group.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/target-group.png)
-
-```
-После команды terrafrom apply 
-вылазит следующая ошибка 
-
-│ Error: Error while requesting API to create instance: server-request-id = cd650b91-3577-4be8-a627-9075359e6c60 
-server-trace-id = 48445bbea3fc2583:7a045466c7f3556f:48445bbea3fc2583:1 client-request-id = 45584a53-e64f-43a6-9b82-2693bc33646f 
-client-trace-id = 1dc679bb-c6c2-4008-a4bf-0c6be4d45d83 rpc error: code = InvalidArgument desc = Request validation error: 
-BootDiskSpec: DiskSpec: TypeId: invalid disk type: must be one of network-hdd, network-ssd, network-ssd-io-m3, network-ssd-nonreplicated
-│
-│   with yandex_compute_instance.web-1,
-│   on main.tf line 21, in resource "yandex_compute_instance" "web-1":
-│   21: resource "yandex_compute_instance" "web-1" {
-```
-![error.png](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/error.png)
-```
-подскажите пожалуйста в чем может быть проблема, на данном этапе занимаюсь донастройкой остальной инфраструктуры. 
-
-Содержимое конфигов для дебага ниже
-```
-
-```
-meta.yaml
-
-#cloud-config
-users:
- - name: yakovlev
- - groups: sudo
- - sudo: ['ALL=(ALL) NOPASSWD:ALL']
- - ssh-authorrized-keys: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICcVElTO1R+C/xzIBEGycxS3KUY/gn7Me2gG32bG7mNi root@ubuntu
-```
-
-```
-viritables.tf
-
-variable "yc_token" {
-   default = "my_token"
-}
-
-variable "yc_cloud_id" {
-  default = "my_id"
-}
-
-variable "yc_folder_id" {
-  default = "my_id"
-}
-
-#Debian 11
-variable "image_id" {
-  default = "fd81ojtctf7kjqa3au3i"
-}
-```
-
-```
-main.tf
-
-terraform {
-  required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-    }
-  }
-
-}
-
-### Значения в блоке provider беруться из файла varitables.tf
-
-provider "yandex" {
- token     = var.yc_token
- cloud_id  = var.yc_cloud_id
- folder_id = var.yc_folder_id
-}
-
-### Создание виртуальных машин
-
-resource "yandex_compute_instance" "web-1" {
-
-  name	      = "web-1"
-  platform_id = "standart-v3"
-
-  resources {
-    cores  = 4
-	memory = 8
-}
-
-  boot_disk {
-    initialize_params {
-	   image_id = var.image_id
-	   type = "network_ssd"
-	   size = "16"
-	  }
-	 }
-	 
-	network_interface {
-	  subnet_id = "${yandex_vpc_network.diplom.id}"
-	  ip_address = each.value.ip_addres
-	}
-	
-	metadata = {
-	  ssh-keys = "user:${file("~../id_rsa.pub")}"
-	}
-}
-
-```
-
-
 Содержание
 ==========
 * [Задача](#Задача)
@@ -141,35 +21,416 @@ resource "yandex_compute_instance" "web-1" {
 ## Инфраструктура
 Для развёртки инфраструктуры используйте Terraform и Ansible. 
 
+```
+Вся инфраструктура создаётся с помощью Terraform, дальнейшее конфигурирование осуществляется с помощью Ansible.
+```
+
 Параметры виртуальной машины (ВМ) подбирайте по потребностям сервисов, которые будут на ней работать. 
 
 Ознакомьтесь со всеми пунктами из этой секции, не беритесь сразу выполнять задание, не дочитав до конца. Пункты взаимосвязаны и могут влиять друг на друга.
 
+Установка Terraform и Ansible 
+
+```
+wget https://hashicorp-releases.yandexcloud.net/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip
+
+zcat terraform_1.5.5_linux_amd64.zip > terraform
+
+chmod 766 terraform
+
+Проверка работоспособности локально
+./terraform
+
+для полноценного использовния
+
+cp terraform /usr/local/bin/terraform
+
+
+
+в корневой папке пользовтеля который будет использовать terraform создать файл .terraformrc
+в нем необходимо прописать провайдер яндекс, если этого не сделать, то terraform будет пытаться 
+подключится к своим серверам, но не сможет из-за ошибки 403 или 404
+
+nano ~/.terraformrc
+
+provider_installation {
+  network_mirror {
+    url = "https://terraform-mirror.yandexcloud.net/"
+    include = ["registry.terraform.io/*/*"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/*/*"]
+  }
+}
+
+создать файл default.tf в папке с проектом
+
+что-бы конфиг корректо отображался terraform fmt default.tf
+
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+
+}
+
+terraform init
+
+
+Установка Ansible производиться обычной командой apt install ansible -y
+```
+
 ### Сайт
 Создайте две ВМ в разных зонах, установите на них сервер nginx, если его там нет. ОС и содержимое ВМ должно быть идентичным, это будут наши веб-сервера.
+
+```
+resource "yandex_compute_instance" "web-vm-1" {
+  name = "web-vm-1"
+  hostname = "web-vm-1"
+  zone = "ru-central1-a"
+
+  resources {
+    cores = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params{
+      image_id = var.image_id 
+      type = "network-ssd"
+      size = "10"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.private-1.id
+    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    ip_address = "10.1.1.10"
+  }
+
+  metadata = {
+    user-data = "${file("~/diplom/terraform/meta.yml")}"
+  }
+}
+
+resource "yandex_compute_instance" "web-vm-2" {
+  name = "web-vm-2"
+  hostname = "web-vm-2"
+  zone = "ru-central1-c"
+
+  resources {
+    cores = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params{
+      image_id = var.image_id 
+      type = "network-ssd"
+      size = "10"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.private-2.id
+    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    ip_address = "10.2.1.20"
+  }
+
+  metadata = {
+    user-data = "${file("~/diplom/terraform/meta.yml")}"
+  }
+}
+
+```
 
 Используйте набор статичных файлов для сайта. Можно переиспользовать сайт из домашнего задания.
 
 Создайте [Target Group](https://cloud.yandex.com/docs/application-load-balancer/concepts/target-group), включите в неё две созданных ВМ.
 
+```
+#target group для балансировщика из двух сайтов с nginx
+resource "yandex_alb_target_group" "tg-group" {
+  name = "tg-group"
+
+  target {
+    ip_address = yandex_compute_instance.web-vm-1.network_interface.0.ip_address
+    subnet_id = yandex_vpc_subnet.private-1.id
+  }
+
+  target {
+    ip_address = yandex_compute_instance.web-vm-2.network_interface.0.ip_address
+    subnet_id = yandex_vpc_subnet.private-2.id
+  }
+}
+```
+
 Создайте [Backend Group](https://cloud.yandex.com/docs/application-load-balancer/concepts/backend-group), настройте backends на target group, ранее созданную. Настройте healthcheck на корень (/) и порт 80, протокол HTTP.
+
+```
+#backend Group
+resource "yandex_alb_backend_group" "backend-group" {
+  name = "backend-group"
+
+  http_backend {
+    name = "backend" 
+    weight = 1
+    port = 80
+    target_group_ids = ["${yandex_alb_target_group.tg-group.id}"]
+    load_balancing_config {
+      panic_threshold = 90
+    }
+
+    healthcheck {
+      timeout = "10s"
+      interval = "3s"
+      healthy_threshold = 10
+      unhealthy_threshold = 15
+      http_healthcheck {
+        path = "/"
+      }
+    }
+  }
+}
+```
 
 Создайте [HTTP router](https://cloud.yandex.com/docs/application-load-balancer/concepts/http-router). Путь укажите — /, backend group — созданную ранее.
 
+```
+#роутер
+resource "yandex_alb_http_router" "router" {
+  name = "router"
+}
+
+resource "yandex_alb_virtual_host" "router-host" {
+  name = "router-host"
+  http_router_id = yandex_alb_http_router.router.id
+  route {
+    name = "route"
+    http_route {
+      http_match {
+        path {
+          prefix = "/"
+        }
+      }
+      http_route_action {
+        backend_group_id = yandex_alb_backend_group.backend-group.id
+        timeout = "3s"
+      }
+    }
+  }
+}
+```
+
 Создайте [Application load balancer](https://cloud.yandex.com/en/docs/application-load-balancer/) для распределения трафика на веб-сервера, созданные ранее. Укажите HTTP router, созданный ранее, задайте listener тип auto, порт 80.
+
+```
+resource "yandex_alb_load_balancer" "load-balancer" {
+  name = "load-balancer"
+  network_id = yandex_vpc_network.network-diplom.id
+  security_group_ids = [yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.vm-load-balancer-sg.id, yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.internal-ssh-sg.id]
+
+  allocation_policy {
+    location {
+      zone_id = "ru-central1-a"
+      subnet_id = yandex_vpc_subnet.private-1.id
+    }
+  }
+
+  listener {
+    name = "listener-1"
+    endpoint {
+      address {
+        external_ipv4_address {
+        }
+      }
+      ports = [80]
+    }
+    http {
+      handler {
+        http_router_id = yandex_alb_http_router.router.id
+      }
+    }
+  }
+}
+```
 
 Протестируйте сайт
 `curl -v <публичный IP балансера>:80` 
 
+СКРИН
+
+СКРИН
+
 ### Мониторинг
 Создайте ВМ, разверните на ней Zabbix. На каждую ВМ установите Zabbix Agent, настройте агенты на отправление метрик в Zabbix. 
 
+```
+resource "yandex_compute_instance" "zabbix-vm" {
+  name = "zabbix-vm"
+  hostname = "zabbix-vm"
+  zone = "ru-central1-b"
+
+  resources {
+    cores = 4
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params{
+      image_id = "fd84ocs2qmrnto64cl6m" 
+      type = "network-ssd"
+      size = "100"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.private-3.id
+    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-server-sg.id]
+    ip_address = "10.3.1.30"
+    nat = true 
+  }
+
+  metadata = {
+    user-data = "${file("~/diplom/terraform/meta.yml")}"
+  }
+}
+```
+
+```
+---
+- hosts: web
+  become: true
+
+  tasks:
+    - name: update apt packages
+      apt:
+        force_apt_get: true
+        upgrade: dist
+        update_cache: yes
+      become: true
+
+    - name: create a directory
+      ansible.builtin.file:
+        path: /etc/zabbix-files
+        state: directory
+        mode: "0755"
+
+    - name: download the zabbix files
+      ansible.builtin.get_url:
+        url: "https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/zabbix-release_6.4-1+debian11_all.deb"
+        dest: /etc/zabbix-files
+      become: true
+
+    - name: Install the zabbix package
+      ansible.builtin.apt:
+        deb: /etc/zabbix-files/zabbix-release_6.4-1+debian11_all.deb
+      become: true
+
+    - name: update apt packages
+      apt:
+        force_apt_get: true
+        upgrade: dist
+        update_cache: yes
+      become: true
+
+    - name: Install zabbix agent
+      ansible.builtin.apt:
+        pkg:
+          - zabbix-agent
+
+    - name: Copy Zabbix Agent configuration file
+      copy:
+        src: /root/diplom/ansible/zabbix/zabbix_agent.conf
+        dest: /etc/zabbix/zabbix_agentd.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Start and enable Zabbix Agent service
+      service:
+        name: zabbix-agent
+        state: started
+        enabled: yes
+```
+
 Настройте дешборды с отображением метрик, минимальный набор — по принципу USE (Utilization, Saturation, Errors) для CPU, RAM, диски, сеть, http запросов к веб-серверам. Добавьте необходимые tresholds на соответствующие графики.
+
+СКРИН
+
+СКРИН
+
+
 
 ### Логи
 Cоздайте ВМ, разверните на ней Elasticsearch. Установите filebeat в ВМ к веб-серверам, настройте на отправку access.log, error.log nginx в Elasticsearch.
 
+```
+resource "yandex_compute_instance" "elasticsearch-vm" {
+  name = "elasticsearch-vm"
+  hostname = "elasticsearch-vm"
+  zone = "ru-central1-b"
+
+  resources {
+    cores = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params{
+      image_id = var.image_id 
+      type = "network-ssd"
+      size = "15"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.private-3.id
+    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.elasticsearch-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    ip_address = "10.3.1.33"
+  }
+
+  metadata = {
+    user-data = "${file("~/diplom/terraform/meta.yml")}"
+  }
+}
+```
+
 Создайте ВМ, разверните на ней Kibana, сконфигурируйте соединение с Elasticsearch.
+
+```
+resource "yandex_compute_instance" "kibana-vm" {
+  name = "kibana-vm"
+  hostname = "kibana-vm"
+  zone = "ru-central1-b"
+
+  resources {
+    cores = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params{
+      image_id = var.image_id 
+      type = "network-ssd"
+      size = "15"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.public-subnet.id
+    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.kibana-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    ip_address = "10.4.1.44"
+    nat = true 
+  }
+
+  metadata = {
+    user-data = "${file("~/diplom/terraform/meta.yml")}"
+  }
+}
+```
 
 ### Сеть
 Разверните один VPC. Сервера web, Elasticsearch поместите в приватные подсети. Сервера Zabbix, Kibana, application load balancer определите в публичную подсеть.
@@ -178,8 +439,41 @@ Cоздайте ВМ, разверните на ней Elasticsearch. Устан
 
 Настройте ВМ с публичным адресом, в которой будет открыт только один порт — ssh. Настройте все security groups на разрешение входящего ssh из этой security group. Эта вм будет реализовывать концепцию bastion host. Потом можно будет подключаться по ssh ко всем хостам через этот хост.
 
+СКРИН
+
+СКРИН
+
 ### Резервное копирование
 Создайте snapshot дисков всех ВМ. Ограничьте время жизни snaphot в неделю. Сами snaphot настройте на ежедневное копирование.
+
+```
+resource "yandex_compute_snapshot_schedule" "snapshot" {
+  name = "snapshot"
+
+  schedule_policy {
+    expression = "0 15 ? * *"
+  }
+
+  retention_period = "168h"
+
+  snapshot_count = 7
+
+  snapshot_spec {
+    description = "daily-snapshot"
+  }
+
+  disk_ids = [
+    "${yandex_compute_instance.bastion-vm.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.web-vm-1.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.web-vm-1.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.zabbix-vm.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.elasticsearch-vm.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.kibana-vm.boot_disk.0.disk_id}", ]
+}
+```
+
+
+
 
 ### Дополнительно
 Не входит в минимальные требования. 
