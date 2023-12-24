@@ -295,6 +295,8 @@ resource "yandex_alb_load_balancer" "load-balancer" {
 Создайте ВМ, разверните на ней Zabbix. На каждую ВМ установите Zabbix Agent, настройте агенты на отправление метрик в Zabbix. 
 
 
+Zabbix доступен по ссылке [zabbix](http://158.160.15.243:8080/)
+
 ```
 resource "yandex_compute_instance" "zabbix-vm" {
   name = "zabbix-vm"
@@ -404,6 +406,8 @@ resource "yandex_compute_instance" "kibana-vm" {
 
 Установка софта происходит с помошью плейбука kibana.yaml
 ```
+Kibana доступна по ссылке [Kibana](http://84.201.167.228:5601/app/infra#/logs/stream?_g=()&flyoutOptions=(flyoutId:!n,flyoutVisibility:hidden,surroundingLogsId:!n))
+
 ![kibana-logs](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/kibana-logs.png)
 
 ### Сеть
