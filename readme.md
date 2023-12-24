@@ -183,9 +183,9 @@ resource "yandex_alb_target_group" "tg-group" {
     subnet_id = yandex_vpc_subnet.private-2.id
   }
 }
-
-![tg-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/tg-group.png)
 ```
+![tg-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/tg-group.png)
+
 
 Создайте [Backend Group](https://cloud.yandex.com/docs/application-load-balancer/concepts/backend-group), настройте backends на target group, ранее созданную. Настройте healthcheck на корень (/) и порт 80, протокол HTTP.
 
@@ -214,9 +214,9 @@ resource "yandex_alb_backend_group" "backend-group" {
     }
   }
 }
-
-![backend-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/backend-group.png)
 ```
+![backend-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/backend-group.png)
+
 
 Создайте [HTTP router](https://cloud.yandex.com/docs/application-load-balancer/concepts/http-router). Путь укажите — /, backend group — созданную ранее.
 
@@ -244,9 +244,9 @@ resource "yandex_alb_virtual_host" "router-host" {
     }
   }
 }
-
-![router](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/router.png)
 ```
+![router](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/router.png)
+
 
 Создайте [Application load balancer](https://cloud.yandex.com/en/docs/application-load-balancer/) для распределения трафика на веб-сервера, созданные ранее. Укажите HTTP router, созданный ранее, задайте listener тип auto, порт 80.
 
@@ -278,9 +278,9 @@ resource "yandex_alb_load_balancer" "load-balancer" {
     }
   }
 }
-
-![application-load-balancer](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
 ```
+![application-load-balancer](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
+
 
 Протестируйте сайт
 `curl -v <публичный IP балансера>:80` 
@@ -403,10 +403,8 @@ resource "yandex_compute_instance" "kibana-vm" {
 }
 
 Установка софта происходит с помошью плейбука kibana.yaml
-
-![kibana-logs](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/kibana-logs.png)
-
 ```
+![kibana-logs](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/kibana-logs.png)
 
 ### Сеть
 Разверните один VPC. Сервера web, Elasticsearch поместите в приватные подсети. Сервера Zabbix, Kibana, application load balancer определите в публичную подсеть.
