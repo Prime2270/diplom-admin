@@ -297,6 +297,8 @@ resource "yandex_alb_load_balancer" "load-balancer" {
 
 Zabbix доступен по ссылке [zabbix](http://158.160.15.243:8080/)
 
+Логин Admin
+Пароль zabbix
 ```
 resource "yandex_compute_instance" "zabbix-vm" {
   name = "zabbix-vm"
