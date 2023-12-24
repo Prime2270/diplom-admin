@@ -184,7 +184,7 @@ resource "yandex_alb_target_group" "tg-group" {
   }
 }
 
-![tg-group]()
+![tg-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/tg-group.png)
 ```
 
 Создайте [Backend Group](https://cloud.yandex.com/docs/application-load-balancer/concepts/backend-group), настройте backends на target group, ранее созданную. Настройте healthcheck на корень (/) и порт 80, протокол HTTP.
@@ -215,7 +215,7 @@ resource "yandex_alb_backend_group" "backend-group" {
   }
 }
 
-![backend-group]()
+![backend-group](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/backend-group.png)
 ```
 
 Создайте [HTTP router](https://cloud.yandex.com/docs/application-load-balancer/concepts/http-router). Путь укажите — /, backend group — созданную ранее.
@@ -245,7 +245,7 @@ resource "yandex_alb_virtual_host" "router-host" {
   }
 }
 
-![router]()
+![router](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/router.png)
 ```
 
 Создайте [Application load balancer](https://cloud.yandex.com/en/docs/application-load-balancer/) для распределения трафика на веб-сервера, созданные ранее. Укажите HTTP router, созданный ранее, задайте listener тип auto, порт 80.
@@ -279,17 +279,17 @@ resource "yandex_alb_load_balancer" "load-balancer" {
   }
 }
 
-![application-load-balancer]()
+![application-load-balancer](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/application-load-balancer.png)
 ```
 
 Протестируйте сайт
 `curl -v <публичный IP балансера>:80` 
 
-![curl-load-balancer]()
+![curl-load-balancer](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/curl-load-balancer.png)
 
-![curl-web-vm-1]()
+![curl-web-vm-1](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/curl-web-vm-1.png)
 
-![curl-web-vm-2]()
+![curl-web-vm-2](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/curl-web-vm-2.png)
 
 ### Мониторинг
 Создайте ВМ, разверните на ней Zabbix. На каждую ВМ установите Zabbix Agent, настройте агенты на отправление метрик в Zabbix. 
@@ -332,7 +332,7 @@ resource "yandex_compute_instance" "zabbix-vm" {
 
 Настройте дешборды с отображением метрик, минимальный набор — по принципу USE (Utilization, Saturation, Errors) для CPU, RAM, диски, сеть, http запросов к веб-серверам. Добавьте необходимые tresholds на соответствующие графики.
 
-![zabbix-web]()
+![zabbix-web](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/zabbix-web.png)
 
 ### Логи
 Cоздайте ВМ, разверните на ней Elasticsearch. Установите filebeat в ВМ к веб-серверам, настройте на отправку access.log, error.log nginx в Elasticsearch.
@@ -404,18 +404,18 @@ resource "yandex_compute_instance" "kibana-vm" {
 
 Установка софта происходит с помошью плейбука kibana.yaml
 
-![kibana-logs]()
+![kibana-logs](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/kibana-logs.png)
 
 ```
 
 ### Сеть
 Разверните один VPC. Сервера web, Elasticsearch поместите в приватные подсети. Сервера Zabbix, Kibana, application load balancer определите в публичную подсеть.
 
-![network]()
+![network](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/network.png)
 
 Настройте [Security Groups](https://cloud.yandex.com/docs/vpc/concepts/security-groups) соответствующих сервисов на входящий трафик только к нужным портам.
 
-![sg]()
+![sg](https://github.com/Prime2270/diplom-admin/blob/main/screenshots/sg.png)
 
 Настройте ВМ с публичным адресом, в которой будет открыт только один порт — ssh. Настройте все security groups на разрешение входящего ssh из этой security group. Эта вм будет реализовывать концепцию bastion host. Потом можно будет подключаться по ssh ко всем хостам через этот хост.
 ```
