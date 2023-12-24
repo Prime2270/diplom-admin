@@ -21,9 +21,10 @@
 ## Инфраструктура
 Для развёртки инфраструктуры используйте Terraform и Ansible. 
 
-```
+
 Вся инфраструктура создаётся с помощью Terraform, дальнейшее конфигурирование осуществляется с помощью Ansible.
-```
+
+
 
 Параметры виртуальной машины (ВМ) подбирайте по потребностям сервисов, которые будут на ней работать. 
 
@@ -79,7 +80,23 @@ terraform {
 terraform init
 
 
-Установка Ansible производиться обычной командой apt install ansible -y
+Установка Ansible 
+
+открыть файл 
+
+nano /etc/apt/sources.list
+
+добавить строчку deb http://ppa.launchpad.net/ansible/ansible/ubuntu focal main
+
+далее apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+
+apt update
+
+apt install ansible -y
+
+проверяем версию ansible версию 
+
+ansible --version
 ```
 
 ### Сайт
@@ -98,15 +115,15 @@ resource "yandex_compute_instance" "web-vm-1" {
 
   boot_disk {
     initialize_params{
-      image_id = var.image_id 
+      image_id = var.image_id
       type = "network-ssd"
-      size = "10"
+      size = "15"
     }
   }
 
   network_interface {
     subnet_id = yandex_vpc_subnet.private-1.id
-    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    security_group_ids = [yandex_vpc_security_group.ssh-access-local.id, yandex_vpc_security_group.nginx-sg.id, yandex_vpc_security_group.filebeat-sg.id]
     ip_address = "10.1.1.10"
   }
 
@@ -127,15 +144,15 @@ resource "yandex_compute_instance" "web-vm-2" {
 
   boot_disk {
     initialize_params{
-      image_id = var.image_id 
+      image_id = var.image_id
       type = "network-ssd"
-      size = "10"
+      size = "15"
     }
   }
 
   network_interface {
     subnet_id = yandex_vpc_subnet.private-2.id
-    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    security_group_ids = [yandex_vpc_security_group.ssh-access-local.id, yandex_vpc_security_group.nginx-sg.id, yandex_vpc_security_group.filebeat-sg.id]
     ip_address = "10.2.1.20"
   }
 
@@ -144,6 +161,7 @@ resource "yandex_compute_instance" "web-vm-2" {
   }
 }
 
+Установка софта происходит с помошью плейбуков nginx.yaml zabbix-agent.yaml filebeat.yaml 
 ```
 
 Используйте набор статичных файлов для сайта. Можно переиспользовать сайт из домашнего задания.
@@ -165,6 +183,8 @@ resource "yandex_alb_target_group" "tg-group" {
     subnet_id = yandex_vpc_subnet.private-2.id
   }
 }
+
+![tg-group]()
 ```
 
 Создайте [Backend Group](https://cloud.yandex.com/docs/application-load-balancer/concepts/backend-group), настройте backends на target group, ранее созданную. Настройте healthcheck на корень (/) и порт 80, протокол HTTP.
@@ -194,6 +214,8 @@ resource "yandex_alb_backend_group" "backend-group" {
     }
   }
 }
+
+![backend-group]()
 ```
 
 Создайте [HTTP router](https://cloud.yandex.com/docs/application-load-balancer/concepts/http-router). Путь укажите — /, backend group — созданную ранее.
@@ -222,6 +244,8 @@ resource "yandex_alb_virtual_host" "router-host" {
     }
   }
 }
+
+![router]()
 ```
 
 Создайте [Application load balancer](https://cloud.yandex.com/en/docs/application-load-balancer/) для распределения трафика на веб-сервера, созданные ранее. Укажите HTTP router, созданный ранее, задайте listener тип auto, порт 80.
@@ -230,7 +254,6 @@ resource "yandex_alb_virtual_host" "router-host" {
 resource "yandex_alb_load_balancer" "load-balancer" {
   name = "load-balancer"
   network_id = yandex_vpc_network.network-diplom.id
-  security_group_ids = [yandex_vpc_security_group.load-balancer-sg.id, yandex_vpc_security_group.vm-load-balancer-sg.id, yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.internal-ssh-sg.id]
 
   allocation_policy {
     location {
@@ -255,17 +278,22 @@ resource "yandex_alb_load_balancer" "load-balancer" {
     }
   }
 }
+
+![application-load-balancer]()
 ```
 
 Протестируйте сайт
 `curl -v <публичный IP балансера>:80` 
 
-СКРИН
+![curl-load-balancer]()
 
-СКРИН
+![curl-web-vm-1]()
+
+![curl-web-vm-2]()
 
 ### Мониторинг
 Создайте ВМ, разверните на ней Zabbix. На каждую ВМ установите Zabbix Agent, настройте агенты на отправление метрик в Zabbix. 
+
 
 ```
 resource "yandex_compute_instance" "zabbix-vm" {
@@ -280,7 +308,7 @@ resource "yandex_compute_instance" "zabbix-vm" {
 
   boot_disk {
     initialize_params{
-      image_id = "fd84ocs2qmrnto64cl6m" 
+      image_id = "fd84ocs2qmrnto64cl6m"
       type = "network-ssd"
       size = "100"
     }
@@ -288,81 +316,23 @@ resource "yandex_compute_instance" "zabbix-vm" {
 
   network_interface {
     subnet_id = yandex_vpc_subnet.private-3.id
-    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-server-sg.id]
+    security_group_ids = [yandex_vpc_security_group.ssh-access-local.id, yandex_vpc_security_group.zabbix-sg.id]
     ip_address = "10.3.1.30"
-    nat = true 
+    nat = true
   }
 
   metadata = {
     user-data = "${file("~/diplom/terraform/meta.yml")}"
   }
 }
+
+Установка софта происходит с помошью плейбука zabbix-main.yaml
 ```
 
-```
----
-- hosts: web
-  become: true
-
-  tasks:
-    - name: update apt packages
-      apt:
-        force_apt_get: true
-        upgrade: dist
-        update_cache: yes
-      become: true
-
-    - name: create a directory
-      ansible.builtin.file:
-        path: /etc/zabbix-files
-        state: directory
-        mode: "0755"
-
-    - name: download the zabbix files
-      ansible.builtin.get_url:
-        url: "https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/zabbix-release_6.4-1+debian11_all.deb"
-        dest: /etc/zabbix-files
-      become: true
-
-    - name: Install the zabbix package
-      ansible.builtin.apt:
-        deb: /etc/zabbix-files/zabbix-release_6.4-1+debian11_all.deb
-      become: true
-
-    - name: update apt packages
-      apt:
-        force_apt_get: true
-        upgrade: dist
-        update_cache: yes
-      become: true
-
-    - name: Install zabbix agent
-      ansible.builtin.apt:
-        pkg:
-          - zabbix-agent
-
-    - name: Copy Zabbix Agent configuration file
-      copy:
-        src: /root/diplom/ansible/zabbix/zabbix_agent.conf
-        dest: /etc/zabbix/zabbix_agentd.conf
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Start and enable Zabbix Agent service
-      service:
-        name: zabbix-agent
-        state: started
-        enabled: yes
-```
 
 Настройте дешборды с отображением метрик, минимальный набор — по принципу USE (Utilization, Saturation, Errors) для CPU, RAM, диски, сеть, http запросов к веб-серверам. Добавьте необходимые tresholds на соответствующие графики.
 
-СКРИН
-
-СКРИН
-
-
+![zabbix-web]()
 
 ### Логи
 Cоздайте ВМ, разверните на ней Elasticsearch. Установите filebeat в ВМ к веб-серверам, настройте на отправку access.log, error.log nginx в Elasticsearch.
@@ -380,7 +350,7 @@ resource "yandex_compute_instance" "elasticsearch-vm" {
 
   boot_disk {
     initialize_params{
-      image_id = var.image_id 
+      image_id = var.image_id
       type = "network-ssd"
       size = "15"
     }
@@ -388,7 +358,7 @@ resource "yandex_compute_instance" "elasticsearch-vm" {
 
   network_interface {
     subnet_id = yandex_vpc_subnet.private-3.id
-    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.elasticsearch-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-sg.id]
+    security_group_ids = [yandex_vpc_security_group.ssh-access-local.id, yandex_vpc_security_group.elasticsearch-sg.id, yandex_vpc_security_group.kibana-sg.id, yandex_vpc_security_group.filebeat-sg.id]
     ip_address = "10.3.1.33"
   }
 
@@ -396,6 +366,8 @@ resource "yandex_compute_instance" "elasticsearch-vm" {
     user-data = "${file("~/diplom/terraform/meta.yml")}"
   }
 }
+
+Установка софта происходит с помошью плейбука elk.yaml
 ```
 
 Создайте ВМ, разверните на ней Kibana, сконфигурируйте соединение с Elasticsearch.
@@ -413,7 +385,7 @@ resource "yandex_compute_instance" "kibana-vm" {
 
   boot_disk {
     initialize_params{
-      image_id = var.image_id 
+      image_id = var.image_id
       type = "network-ssd"
       size = "15"
     }
@@ -421,28 +393,37 @@ resource "yandex_compute_instance" "kibana-vm" {
 
   network_interface {
     subnet_id = yandex_vpc_subnet.public-subnet.id
-    security_group_ids = [yandex_vpc_security_group.private-sg.id, yandex_vpc_security_group.kibana-sg.id, yandex_vpc_security_group.internal-ssh-sg.id, yandex_vpc_security_group.external-ssh-sg.id, yandex_vpc_security_group.zabbix-sg.id]
-    ip_address = "10.4.1.44"
-    nat = true 
+    security_group_ids = [yandex_vpc_security_group.ssh-access-local.id, yandex_vpc_security_group.kibana-sg.id, yandex_vpc_security_group.elasticsearch-sg.id, yandex_vpc_security_group.filebeat-sg.id]
+    nat = true
   }
 
   metadata = {
     user-data = "${file("~/diplom/terraform/meta.yml")}"
   }
 }
+
+Установка софта происходит с помошью плейбука kibana.yaml
+
+![kibana-logs]()
+
 ```
 
 ### Сеть
 Разверните один VPC. Сервера web, Elasticsearch поместите в приватные подсети. Сервера Zabbix, Kibana, application load balancer определите в публичную подсеть.
 
+![network]()
+
 Настройте [Security Groups](https://cloud.yandex.com/docs/vpc/concepts/security-groups) соответствующих сервисов на входящий трафик только к нужным портам.
 
+![sg]()
+
 Настройте ВМ с публичным адресом, в которой будет открыт только один порт — ssh. Настройте все security groups на разрешение входящего ssh из этой security group. Эта вм будет реализовывать концепцию bastion host. Потом можно будет подключаться по ssh ко всем хостам через этот хост.
+```
+Для подключения и конфигурирования ВМ в файле ansible hosts было прописано правило для подключения через bastion
 
-СКРИН
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand=\"ssh -o StrictHostKeyChecking=no -q \yakovlev@<public_ip> -o IdentityFile=/root/.ssh/id_ed25519 -o Port=22 -W %h:22\""
 
-СКРИН
-
+```
 ### Резервное копирование
 Создайте snapshot дисков всех ВМ. Ограничьте время жизни snaphot в неделю. Сами snaphot настройте на ежедневное копирование.
 
