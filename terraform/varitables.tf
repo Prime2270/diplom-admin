@@ -1,16 +1,16 @@
 #id облака
 variable "yc_cloud_id" {
-  default = "b1g81tfcidpm51imdjrm"
+  default = "your_cloud"
 }
 
 #id подкаталога
 variable "yc_folder_id" {
-  default = "b1gjkksr8jd4enj7cm6l"
+  default = "your_folder"
 }
 
 #OAuth-токен
 variable "yc_token" {
-   default = "y0_AgAAAAAkqjA0AATuwQAAAADq5N_7ej1JLnE0RWajrgbrQ3xf4GP-j-U"
+   default = "your_token"
 }
 
 #Debian 11
